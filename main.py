@@ -302,7 +302,7 @@ def _get_group_by_alias(group_alias):
     """Get detailed ATT&CK group by alias (e.g., 'APT29', 'G0019').
     
     Args:
-        group_alias: Group alias (case-sensitive)
+        group_alias: Group alias (case-insensitive)
         
     Returns:
         Dict with group details or empty dict if not found
@@ -326,7 +326,7 @@ def _get_group_by_alias(group_alias):
 
 @mcp.tool(
     name="get_group_by_alias",
-    description="Return full ATT&CK group object for MITRE mitigation ID (e.g., 'G0019').  You must use one of the aliases the group is known by, for example G0019 is know by 'APT29' or 'UNC2452' or 'UNC3524' or 'Midnight Blizzard'.  This is case-sensitive.",
+    description="Return full ATT&CK group object for a group alias (e.g., 'G0019').  You must use one of the aliases the group is known by, for example G0019 is known by 'APT29' or 'UNC2452' or 'UNC3524' or 'Midnight Blizzard'.  Matching is case-insensitive.",
     output_schema={"type": "object"},
     annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False}
 )

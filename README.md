@@ -2,6 +2,9 @@
 
 A Model Context Protocol (MCP) server for querying MITRE ATT&CK and MITRE ATLAS (AI/ML) frameworks.
 
+> 📖 See [`EXAMPLES.md`](EXAMPLES.md) for ready-to-use example prompts (ATLAS,
+> Cloud, and Containers) and a full tool reference.
+
 ## GHCR image
 
 A public container image is published to the GitHub Container Registry. Pull the
