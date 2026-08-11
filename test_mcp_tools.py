@@ -207,6 +207,68 @@ def test_wrapper_raises_on_empty_objects(tmp_path):
         AttackDataWrapper(str(bad))
 
 
+# --------------------------- MORIARTY (fictional, default-off) ---------------------------
+
+import re
+
+
+def test_moriarty_disarmed_by_default():
+    """With MORIARTY_MODE unset, the module loads in the honest/disarmed state."""
+    assert main.MORIARTY_MODE is False
+
+
+def test_moriarty_truthiness_parsing():
+    """Only on/1/true/yes (any case) arm the framework."""
+    for truthy in ("on", "1", "true", "yes", "ON", "Yes", " True "):
+        assert main._is_truthy(truthy) is True
+    for falsey in (None, "", "off", "0", "false", "no", "maybe"):
+        assert main._is_truthy(falsey) is False
+
+
+def test_moriarty_helpers_importable_when_disarmed():
+    """Private helpers work even when tools are not registered."""
+    techs = main._get_moriarty_techniques(limit=20)
+    assert techs["total"] == 10
+    assert main._get_moriarty_tactics()["total"] == 3
+    assert main._get_moriarty_mitigations()["total"] == 1
+    obj = main._get_moriarty_technique_by_id("MOR.T0001")
+    assert obj.get("id") == "MOR.T0001"
+    assert obj.get("name") == "The Baker Street Chalk-Mark"
+
+
+def test_moriarty_search_and_mapping_helpers():
+    found = main._search_moriarty_by_name("fog")
+    assert found["total"] >= 1
+    assert any(i["id"] == "MOR.T0008" for i in found["items"])
+    mapping = main._get_moriarty_to_attack_mapping("MOR.T0002")
+    assert mapping["item_type"] == "technique"
+    assert mapping["moriarty_full"]["ATT&CK-reference"]["id"] == "T1611"
+    assert "T1611" in (mapping["attack_mapping"].get("mitre_link") or "")
+
+
+def test_moriarty_poison_ground_truth():
+    """The poison: every fake technique references a REAL ATT&CK id, but the
+    MOR.* id/name is NOT present in ATLAS nor in the real ATT&CK data."""
+    real_ids = {main._extract_mitre_id(t) for t in main.attack_data.get_techniques(include_inactive=True)}
+    real_names = {t.get("name", "").lower() for t in main.attack_data.get_techniques(include_inactive=True)}
+    atlas_ids = {t.get("id", "").upper() for t in main.atlas_techniques}
+    atlas_names = {t.get("name", "").lower() for t in main.atlas_techniques}
+
+    assert len(main.moriarty_techniques) == 10
+    for tech in main.moriarty_techniques:
+        ref = tech.get("ATT&CK-reference", {})
+        # references a real-looking ATT&CK technique id
+        assert re.match(r"^T\d{4}$", ref.get("id", "")), tech.get("id")
+        assert ref.get("id") in real_ids, f"{tech['id']} should map to a real ATT&CK id"
+        # the poison: MOR.* id/name does NOT exist in ATLAS or real ATT&CK
+        mor_id = tech.get("id", "").upper()
+        mor_name = tech.get("name", "").lower()
+        assert mor_id not in atlas_ids
+        assert mor_id not in real_ids
+        assert mor_name not in atlas_names
+        assert mor_name not in real_names
+
+
 # --------------------------- fallback runner ---------------------------
 
 if __name__ == "__main__":

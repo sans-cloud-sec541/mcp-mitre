@@ -149,10 +149,53 @@ The server exposes **23 tools**. All are read-only.
 
 ---
 
+## MORIARTY (lab-only, fictional, default-off)
+
+> ⚠️ **FICTIONAL SEC541 lab content — NOT real MITRE data.** These tools exist
+> **only** when the server runs with `MORIARTY_MODE` set to a truthy value
+> (`on`/`1`/`true`/`yes`). The default image exposes none of them. Teaching
+> point: each fake `MOR.*` technique references a real ATT&CK id but does not
+> exist on the real MITRE sites (ground-truth poisoning).
+
+### Arm / disarm via Copilot CLI (stdio)
+
+```bash
+# ARMED — lab mode
+copilot mcp add mitre -- docker run --rm -i -e MORIARTY_MODE=on ghcr.io/sans-cloud-sec541/mcp-mitre:0.3 uv run main.py --transport stdio
+
+# Remove it
+copilot plugins remove mitre --mcp
+
+# DISARMED — honest default image
+copilot mcp add mitre -- docker run --rm -i ghcr.io/sans-cloud-sec541/mcp-mitre:0.3 uv run main.py --transport stdio
+```
+
+### Example prompts (armed)
+
+- "List the MORIARTY techniques." → `get_moriarty_techniques`
+- "Show me MOR.T0001." → `get_moriarty_technique_by_id`
+- "Which real ATT&CK technique does MOR.T0002 map to?" → `get_moriarty_to_attack_mapping`
+- "Search MORIARTY for 'fog'." → `search_moriarty_by_name`
+
+### Tools (only registered when armed)
+
+| Tool | Purpose |
+| --- | --- |
+| `get_moriarty_techniques(limit, offset)` | FICTIONAL technique summaries. |
+| `get_moriarty_tactics(limit, offset)` | FICTIONAL tactic summaries. |
+| `get_moriarty_mitigations(limit, offset)` | FICTIONAL mitigation summaries. |
+| `get_moriarty_technique_by_id(technique_id)` | Full FICTIONAL technique, e.g. `MOR.T0001`. |
+| `get_moriarty_tactic_by_id(tactic_id)` | Full FICTIONAL tactic, e.g. `MOR.TA0001`. |
+| `search_moriarty_by_name(query, object_type, limit, offset)` | Search FICTIONAL objects. |
+| `get_moriarty_to_attack_mapping(moriarty_id)` | Resolve the referenced real ATT&CK item. |
+
+---
+
 ## Data versions
 
 - MITRE ATT&CK Enterprise: **v19.2**
 - MITRE ATLAS: **5.6.0**
+- MORIARTY: **FICTIONAL lab data** (`MORIARTY.yaml`, default-off)
 
 > This is an SEC541 org fork of
 > [bradleyjlevine/mcp-mitre](https://github.com/bradleyjlevine/mcp-mitre),

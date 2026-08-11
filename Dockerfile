@@ -9,6 +9,7 @@ RUN pip install --upgrade pip && pip install uv
 COPY main.py .
 COPY attack_data_wrapper.py .
 COPY ATLAS.yaml .
+COPY MORIARTY.yaml .
 COPY enterprise-attack.json .
 COPY pyproject.toml .
 COPY uv.lock .

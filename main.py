@@ -4,6 +4,7 @@ from fastmcp import FastMCP
 from attack_data_wrapper import load_attack_data
 import yaml
 import argparse
+import os
 
 def _get_attr_or_key(obj, key, default=None):
     """Get attribute from object or key from dict, with fallback to default."""
@@ -90,6 +91,39 @@ atlas_matrix = atlas_data["matrices"][0]
 atlas_tactics = atlas_matrix["tactics"]
 atlas_techniques = atlas_matrix["techniques"]
 atlas_mitigations = atlas_matrix["mitigations"]
+
+# --- MORIARTY (lab-only, fictional, default-off) ------------------------------
+# MORIARTY is a FICTIONAL Sherlock-Holmes-flavoured "framework" used by the
+# SEC541 lab to teach ground-truth poisoning. It is INERT unless the
+# MORIARTY_MODE environment variable is truthy (on/1/true/yes, any case).
+#
+# Design choice: the MORIARTY.yaml data and the private _get_moriarty_* helpers
+# are ALWAYS loaded/defined so unit tests can import them directly. Only the
+# @mcp.tool REGISTRATION is gated on MORIARTY_MODE, so the honest (default)
+# image exposes ZERO moriarty tools over MCP.
+def _is_truthy(value):
+    """Return True when an env-style string is a truthy flag (on/1/true/yes)."""
+    if value is None:
+        return False
+    return value.strip().lower() in ("on", "1", "true", "yes")
+
+MORIARTY_MODE = _is_truthy(os.environ.get("MORIARTY_MODE"))
+
+moriarty_tactics = []
+moriarty_techniques = []
+moriarty_mitigations = []
+try:
+    with open("MORIARTY.yaml", "r") as f:
+        _moriarty_data = yaml.safe_load(f)
+    _moriarty_matrix = _moriarty_data["matrices"][0]
+    moriarty_tactics = _moriarty_matrix.get("tactics", [])
+    moriarty_techniques = _moriarty_matrix.get("techniques", [])
+    moriarty_mitigations = _moriarty_matrix.get("mitigations", [])
+except (FileNotFoundError, KeyError, TypeError):
+    # The fictional data file is optional; absence simply means no MORIARTY data.
+    moriarty_tactics = []
+    moriarty_techniques = []
+    moriarty_mitigations = []
 
 mcp = FastMCP(
     name="ATTACK + ATLAS MCP Server",
@@ -824,6 +858,205 @@ def _get_atlas_to_attack_mapping(atlas_id):
 def get_atlas_to_attack_mapping(atlas_id: str):
     """MCP tool wrapper for getting ATLAS to ATT&CK mappings."""
     return _get_atlas_to_attack_mapping(atlas_id)
+
+# ---------- MORIARTY endpoints (FICTIONAL lab data, default-off) ----------
+# The private _get_moriarty_* helpers below are ALWAYS defined so unit tests can
+# import them directly. They REUSE the ATLAS helpers (_atlas_summary,
+# _atlas_find_by_id, _atlas_tactic_by_id) because MORIARTY shares the ATLAS
+# schema. The @mcp.tool wrappers are registered only when MORIARTY_MODE is armed
+# (see the `if MORIARTY_MODE:` block that follows), so the honest default image
+# exposes zero moriarty tools over MCP.
+
+def _get_moriarty_techniques(limit=20, offset=0):
+    """Get paginated list of MORIARTY technique summaries (FICTIONAL)."""
+    paged = moriarty_techniques[offset:offset+limit]
+    summaries = [_atlas_summary(t) for t in paged]
+    return {"items": summaries, "total": len(moriarty_techniques)}
+
+def _get_moriarty_tactics(limit=20, offset=0):
+    """Get paginated list of MORIARTY tactic summaries (FICTIONAL)."""
+    paged = moriarty_tactics[offset:offset+limit]
+    summaries = [_atlas_summary(t) for t in paged]
+    return {"items": summaries, "total": len(moriarty_tactics)}
+
+def _get_moriarty_mitigations(limit=20, offset=0):
+    """Get paginated list of MORIARTY mitigation summaries (FICTIONAL)."""
+    paged = moriarty_mitigations[offset:offset+limit]
+    summaries = [_atlas_summary(m) for m in paged]
+    return {"items": summaries, "total": len(moriarty_mitigations)}
+
+def _get_moriarty_technique_by_id(technique_id):
+    """Get detailed MORIARTY technique by ID (e.g., 'MOR.T0001'). FICTIONAL."""
+    return _atlas_find_by_id(moriarty_techniques, technique_id)
+
+def _get_moriarty_tactic_by_id(tactic_id):
+    """Get detailed MORIARTY tactic by ID or ATT&CK reference ID. FICTIONAL."""
+    return _atlas_tactic_by_id(moriarty_tactics, tactic_id)
+
+def _search_moriarty_by_name(query, object_type="all", limit=20, offset=0):
+    """Search across MORIARTY objects by name (case-insensitive). FICTIONAL.
+
+    Args:
+        query: Search term to match against names
+        object_type: Type to search - 'all', 'techniques', 'tactics', 'mitigations'
+        limit: Maximum number of results to return
+        offset: Number of results to skip (for pagination)
+
+    Returns:
+        Dict with 'items' (list of matching summaries) and 'total' (count of
+        all matches, not just the returned page)
+    """
+    results = []
+    query_lower = query.lower()
+
+    search_targets = {
+        'techniques': moriarty_techniques,
+        'tactics': moriarty_tactics,
+        'mitigations': moriarty_mitigations
+    }
+
+    if object_type == "all":
+        types_to_search = search_targets.keys()
+    elif object_type in search_targets:
+        types_to_search = [object_type]
+    else:
+        return {"items": [], "total": 0, "error": f"Unknown object_type: {object_type}"}
+
+    for obj_type in types_to_search:
+        for obj in search_targets[obj_type]:
+            name = obj.get('name', '')
+            if name and query_lower in name.lower():
+                summary = _atlas_summary(obj)
+                summary['object_type'] = obj_type
+                results.append(summary)
+
+    paged = results[offset:offset+limit]
+    return {"items": paged, "total": len(results)}
+
+def _get_moriarty_to_attack_mapping(moriarty_id):
+    """Get the (real) ATT&CK item referenced by a MORIARTY item. FICTIONAL.
+
+    The MORIARTY id/name is invented, but its 'ATT&CK-reference' points at a
+    real ATT&CK id -- this helper resolves that reference so students can see
+    the authoritative-looking (but poisoned) mapping.
+
+    Args:
+        moriarty_id: MORIARTY ID (e.g., 'MOR.T0001', 'MOR.TA0001', 'MOR.M0001')
+
+    Returns:
+        Dict with MORIARTY item details and the resolved ATT&CK mapping
+    """
+    moriarty_id_upper = moriarty_id.upper()
+    moriarty_item = None
+    item_type = None
+
+    if moriarty_id_upper.startswith('MOR.TA'):
+        moriarty_item = _atlas_tactic_by_id(moriarty_tactics, moriarty_id)
+        item_type = "tactic"
+    elif moriarty_id_upper.startswith('MOR.T'):
+        moriarty_item = _atlas_find_by_id(moriarty_techniques, moriarty_id)
+        item_type = "technique"
+    elif moriarty_id_upper.startswith('MOR.M'):
+        moriarty_item = _atlas_find_by_id(moriarty_mitigations, moriarty_id)
+        item_type = "mitigation"
+    else:
+        return {"error": f"Unknown MORIARTY ID format: {moriarty_id}"}
+
+    if not moriarty_item:
+        return {"error": f"MORIARTY item not found: {moriarty_id}"}
+
+    attack_mapping = None
+    attck_ref = moriarty_item.get("ATT&CK-reference", {})
+    if isinstance(attck_ref, dict) and attck_ref.get("id"):
+        attack_id = attck_ref.get("id")
+        if item_type == "technique":
+            attack_mapping = _get_technique_by_id(attack_id)
+        elif item_type == "tactic":
+            attack_mapping = _get_tactic_by_id(attack_id)
+        elif item_type == "mitigation":
+            attack_mapping = _get_mitigation_by_id(attack_id)
+
+    return {
+        "moriarty_item": _atlas_summary(moriarty_item),
+        "moriarty_full": moriarty_item,
+        "attack_mapping": attack_mapping,
+        "item_type": item_type
+    }
+
+# The @mcp.tool wrappers exist ONLY when MORIARTY_MODE is armed. When the env
+# var is unset/falsey this block is skipped entirely, so the default image
+# registers no moriarty tools and existing behaviour is byte-for-byte honest.
+if MORIARTY_MODE:
+
+    @mcp.tool(
+        name="get_moriarty_techniques",
+        description="FICTIONAL LAB DATA (not real MITRE). Return a paginated summary list of MORIARTY techniques.",
+        output_schema={"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object"}}, "total": {"type": "integer"}}},
+        annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False}
+    )
+    def get_moriarty_techniques(limit: int = 20, offset: int = 0):
+        """MCP tool wrapper for getting MORIARTY techniques (FICTIONAL)."""
+        return _get_moriarty_techniques(limit, offset)
+
+    @mcp.tool(
+        name="get_moriarty_tactics",
+        description="FICTIONAL LAB DATA (not real MITRE). Return a paginated summary list of MORIARTY tactics.",
+        output_schema={"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object"}}, "total": {"type": "integer"}}},
+        annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False}
+    )
+    def get_moriarty_tactics(limit: int = 20, offset: int = 0):
+        """MCP tool wrapper for getting MORIARTY tactics (FICTIONAL)."""
+        return _get_moriarty_tactics(limit, offset)
+
+    @mcp.tool(
+        name="get_moriarty_mitigations",
+        description="FICTIONAL LAB DATA (not real MITRE). Return a paginated summary list of MORIARTY mitigations.",
+        output_schema={"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object"}}, "total": {"type": "integer"}}},
+        annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False}
+    )
+    def get_moriarty_mitigations(limit: int = 20, offset: int = 0):
+        """MCP tool wrapper for getting MORIARTY mitigations (FICTIONAL)."""
+        return _get_moriarty_mitigations(limit, offset)
+
+    @mcp.tool(
+        name="get_moriarty_technique_by_id",
+        description="FICTIONAL LAB DATA (not real MITRE). Return the full MORIARTY technique object for a MORIARTY ID (e.g., 'MOR.T0001').",
+        output_schema={"type": "object"},
+        annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False}
+    )
+    def get_moriarty_technique_by_id(technique_id: str):
+        """MCP tool wrapper for getting a MORIARTY technique by ID (FICTIONAL)."""
+        return _get_moriarty_technique_by_id(technique_id)
+
+    @mcp.tool(
+        name="get_moriarty_tactic_by_id",
+        description="FICTIONAL LAB DATA (not real MITRE). Return the full MORIARTY tactic object for a MORIARTY or ATT&CK ID (e.g., 'MOR.TA0001', 'TA0043').",
+        output_schema={"type": "object"},
+        annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False}
+    )
+    def get_moriarty_tactic_by_id(tactic_id: str):
+        """MCP tool wrapper for getting a MORIARTY tactic by ID (FICTIONAL)."""
+        return _get_moriarty_tactic_by_id(tactic_id)
+
+    @mcp.tool(
+        name="search_moriarty_by_name",
+        description="FICTIONAL LAB DATA (not real MITRE). Search MORIARTY objects by name. Use object_type to filter: 'all', 'techniques', 'tactics', 'mitigations'.",
+        output_schema={"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object"}}, "total": {"type": "integer"}}},
+        annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False}
+    )
+    def search_moriarty_by_name(query: str, object_type: str = "all", limit: int = 20, offset: int = 0):
+        """MCP tool wrapper for searching MORIARTY by name (FICTIONAL)."""
+        return _search_moriarty_by_name(query, object_type, limit, offset)
+
+    @mcp.tool(
+        name="get_moriarty_to_attack_mapping",
+        description="FICTIONAL LAB DATA (not real MITRE). Resolve the real ATT&CK item referenced by a MORIARTY item. Use a MORIARTY ID like 'MOR.T0001', 'MOR.TA0001', 'MOR.M0001'.",
+        output_schema={"type": "object"},
+        annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False}
+    )
+    def get_moriarty_to_attack_mapping(moriarty_id: str):
+        """MCP tool wrapper for getting MORIARTY to ATT&CK mappings (FICTIONAL)."""
+        return _get_moriarty_to_attack_mapping(moriarty_id)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="MITRE ATT&CK + ATLAS MCP Server")

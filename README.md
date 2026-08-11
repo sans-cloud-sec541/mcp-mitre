@@ -8,11 +8,11 @@ A Model Context Protocol (MCP) server for querying MITRE ATT&CK and MITRE ATLAS 
 ## GHCR image
 
 A public container image is published to the GitHub Container Registry. Pull the
-pinned version `0.2`:
+pinned version `0.3`:
 
 ```bash
-docker pull ghcr.io/sans-cloud-sec541/mcp-mitre:0.2
-docker run --rm -p 8099:8099 ghcr.io/sans-cloud-sec541/mcp-mitre:0.2
+docker pull ghcr.io/sans-cloud-sec541/mcp-mitre:0.3
+docker run --rm -p 8099:8099 ghcr.io/sans-cloud-sec541/mcp-mitre:0.3
 ```
 
 > This is an SEC541 org fork of [bradleyjlevine/mcp-mitre](https://github.com/bradleyjlevine/mcp-mitre),
@@ -76,6 +76,7 @@ python main.py --transport streamable-http --host 0.0.0.0 --port 9000
 - `attack_data_wrapper.py` - Custom wrapper for MITRE ATT&CK data to handle STIX validation issues
 - `enterprise-attack.json` - ATT&CK Enterprise framework data
 - `ATLAS.yaml` - MITRE ATLAS AI/ML framework data
+- `MORIARTY.yaml` - FICTIONAL SEC541 lab data (default-off; see MORIARTY section)
 - `test_mcp_tools.py` - Test suite for MCP tools
 
 ## Available Tool Functions
@@ -128,6 +129,65 @@ python main.py --transport streamable-http --host 0.0.0.0 --port 9000
 
 #### Cross-Framework Mapping
 - `get_atlas_to_attack_mapping(atlas_id)` - Get corresponding ATT&CK mappings for ATLAS items
+
+## MORIARTY (lab-only, fictional, default-off)
+
+> ⚠️ **FICTIONAL content for the SANS SEC541 lab — NOT real MITRE data.**
+> MORIARTY is an invented, PG-rated Sherlock-Holmes-flavoured "framework" used
+> to teach **ground-truth poisoning**. Each fake technique carries an
+> `ATT&CK-reference` to a **real** ATT&CK Cloud/Container ID so it *looks*
+> authoritative, but the `MOR.*` id/name does **not** exist on the real MITRE
+> sites — that mismatch is the teaching point. Do not use operationally.
+
+**Default behaviour is honest.** The published image ships `MORIARTY.yaml` but
+registers **zero** moriarty tools unless the environment variable
+`MORIARTY_MODE` is truthy (`on`, `1`, `true`, or `yes`, case-insensitive).
+
+When armed, these 7 tools appear (all clearly labelled FICTIONAL):
+
+- `get_moriarty_techniques(limit=20, offset=0)`
+- `get_moriarty_tactics(limit=20, offset=0)`
+- `get_moriarty_mitigations(limit=20, offset=0)`
+- `get_moriarty_technique_by_id(technique_id)` — e.g. `MOR.T0001`
+- `get_moriarty_tactic_by_id(tactic_id)` — e.g. `MOR.TA0001`
+- `search_moriarty_by_name(query, object_type="all", limit=20, offset=0)`
+- `get_moriarty_to_attack_mapping(moriarty_id)` — resolves the real ATT&CK id
+
+The 10 fictional techniques (each references a real ATT&CK id):
+
+| MORIARTY id | Name | ATT&CK-reference |
+|-------------|------|------------------|
+| MOR.T0001 | The Baker Street Chalk-Mark | [T1613](https://attack.mitre.org/techniques/T1613/) |
+| MOR.T0002 | The Reichenbach Vanish | [T1611](https://attack.mitre.org/techniques/T1611/) |
+| MOR.T0003 | Safe-Cracking by Ear | [T1552](https://attack.mitre.org/techniques/T1552/) |
+| MOR.T0004 | The Hansom-Cab Getaway | [T1610](https://attack.mitre.org/techniques/T1610/) |
+| MOR.T0005 | The Disguise of a Hundred Faces | [T1078](https://attack.mitre.org/techniques/T1078/) |
+| MOR.T0006 | Carrier-Pigeon Post | [T1537](https://attack.mitre.org/techniques/T1537/) |
+| MOR.T0007 | The Invisible-Ink Ledger | [T1530](https://attack.mitre.org/techniques/T1530/) |
+| MOR.T0008 | The Pea-Souper Fog Cover | [T1562](https://attack.mitre.org/techniques/T1562/) |
+| MOR.T0009 | The Pickpocket's Sleight | [T1528](https://attack.mitre.org/techniques/T1528/) |
+| MOR.T0010 | The Irregulars' Network | [T1580](https://attack.mitre.org/techniques/T1580/) |
+
+Fictional tactics: `MOR.TA0001` The Consulting Criminal's Reconnaissance,
+`MOR.TA0002` The Web of Influence, `MOR.TA0003` The Final Problem.
+Fictional (deliberately hollow) mitigation: `MOR.M0001` Engage a Consulting
+Detective.
+
+### Arm / disarm via Copilot CLI (stdio)
+
+Everything a student does runs inside the Copilot CLI. Arm MORIARTY by passing
+`-e MORIARTY_MODE=on` to `docker run`:
+
+```bash
+# ARMED — MORIARTY tools appear (lab mode)
+copilot mcp add mitre -- docker run --rm -i -e MORIARTY_MODE=on ghcr.io/sans-cloud-sec541/mcp-mitre:0.3 uv run main.py --transport stdio
+
+# Remove it again
+copilot plugins remove mitre --mcp
+
+# DISARMED — the honest default image (no MORIARTY tools)
+copilot mcp add mitre -- docker run --rm -i ghcr.io/sans-cloud-sec541/mcp-mitre:0.3 uv run main.py --transport stdio
+```
 
 ## Usage Examples
 
