@@ -127,6 +127,86 @@ def test_atlas_search_over_mcp():
     assert data["total"] >= len(data["items"])
 
 
+# --------------------------- MORIARTY over MCP (default-off) ---------------------------
+
+_MORIARTY_TOOLS = {
+    "get_moriarty_techniques",
+    "get_moriarty_tactics",
+    "get_moriarty_mitigations",
+    "get_moriarty_technique_by_id",
+    "get_moriarty_tactic_by_id",
+    "search_moriarty_by_name",
+    "get_moriarty_to_attack_mapping",
+}
+
+
+def test_moriarty_tools_absent_when_disarmed():
+    """Default image: none of the 7 moriarty tools are registered over MCP."""
+    names = set(_list_tool_names())
+    assert names.isdisjoint(_MORIARTY_TOOLS), (
+        f"moriarty tools leaked into the honest image: {names & _MORIARTY_TOOLS}"
+    )
+
+
+def _run_armed_subprocess():
+    """Import main with MORIARTY_MODE armed in a fresh process and return a
+    JSON report of tool names and a few tool calls. Using a subprocess keeps
+    the env var and re-registration deterministic and isolated from this suite.
+    """
+    import os
+    import subprocess
+    import sys
+
+    runner = (
+        "import asyncio, json\n"
+        "from fastmcp import Client\n"
+        "import main\n"
+        "async def go():\n"
+        "    async with Client(main.mcp) as c:\n"
+        "        tools = [t.name for t in await c.list_tools()]\n"
+        "        tech = json.loads((await c.call_tool('get_moriarty_technique_by_id', {'technique_id': 'MOR.T0001'})).content[0].text)\n"
+        "        search = json.loads((await c.call_tool('search_moriarty_by_name', {'query': 'fog'})).content[0].text)\n"
+        "        mapping = json.loads((await c.call_tool('get_moriarty_to_attack_mapping', {'moriarty_id': 'MOR.T0002'})).content[0].text)\n"
+        "        return {'tools': tools, 'tech': tech, 'search': search, 'mapping': mapping}\n"
+        "print(json.dumps(asyncio.run(go())))\n"
+    )
+    env = dict(os.environ)
+    env["MORIARTY_MODE"] = "on"
+    here = os.path.dirname(os.path.abspath(__file__))
+    proc = subprocess.run(
+        [sys.executable, "-c", runner],
+        cwd=here,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 0, f"armed subprocess failed:\n{proc.stderr}"
+    return json.loads(proc.stdout.strip().splitlines()[-1])
+
+
+def test_moriarty_tools_registered_when_armed():
+    report = _run_armed_subprocess()
+    names = set(report["tools"])
+    missing = _MORIARTY_TOOLS - names
+    assert not missing, f"armed image missing moriarty tools: {sorted(missing)}"
+
+
+def test_moriarty_technique_by_id_when_armed():
+    report = _run_armed_subprocess()
+    tech = report["tech"]
+    assert tech.get("id") == "MOR.T0001"
+    assert tech.get("name") == "The Baker Street Chalk-Mark"
+    assert tech.get("ATT&CK-reference", {}).get("id") == "T1613"
+
+
+def test_moriarty_search_and_mapping_when_armed():
+    report = _run_armed_subprocess()
+    assert report["search"]["total"] >= 1
+    assert report["mapping"]["item_type"] == "technique"
+    assert report["mapping"]["moriarty_full"]["ATT&CK-reference"]["id"] == "T1611"
+    assert "T1611" in (report["mapping"]["attack_mapping"].get("mitre_link") or "")
+
+
 if __name__ == "__main__":
     import os
     import sys

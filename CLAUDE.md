@@ -60,6 +60,14 @@ uv run pytest -q
 3. **Data Sources**:
    - `enterprise-attack.json`: ATT&CK Enterprise framework data
    - `ATLAS.yaml`: MITRE ATLAS AI/ML framework data
+   - `MORIARTY.yaml`: FICTIONAL SEC541 lab data (NOT real MITRE). Loaded and
+     exposed as MCP tools **only** when the `MORIARTY_MODE` environment variable
+     is truthy (`on`/`1`/`true`/`yes`). The default image stays honest and
+     registers zero moriarty tools. Teaches ground-truth poisoning: each fake
+     `MOR.*` technique references a real ATT&CK id but does not exist on the real
+     MITRE sites. The `_get_moriarty_*` helpers are always importable; only the
+     `@mcp.tool` registration is gated (see the `if MORIARTY_MODE:` block in
+     `main.py`).
 
 ### API Structure
 

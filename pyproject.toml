@@ -1,6 +1,6 @@
 [project]
 name = "mitre"
-version = "0.2.0"
+version = "0.3.0"
 description = "MCP server for the MITRE ATT&CK and MITRE ATLAS frameworks"
 readme = "README.md"
 requires-python = ">=3.11"
