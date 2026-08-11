@@ -1,11 +1,16 @@
 [project]
 name = "mitre"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "MCP server for the MITRE ATT&CK and MITRE ATLAS frameworks"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "fastmcp>=2.11.3",
     "mitreattack-python>=5.0.0",
     "pyyaml>=6.0.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
 ]

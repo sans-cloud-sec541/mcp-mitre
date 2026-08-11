@@ -10,7 +10,6 @@ COPY main.py .
 COPY attack_data_wrapper.py .
 COPY ATLAS.yaml .
 COPY enterprise-attack.json .
-COPY ics-attack.json .
 COPY pyproject.toml .
 COPY uv.lock .
 
