@@ -2,7 +2,7 @@
 
 This guide gives ready-to-use natural-language prompts for an assistant that is
 connected to the **MITRE ATT&CK + ATLAS MCP server**, plus a full list of the
-tools the server exposes. Use it as a starting point for lab work in SEC541.
+tools the server exposes. Use it as a starting point.
 
 The assistant maps each prompt to one or more MCP tools (listed at the bottom).
 You do not need to call the tools by name — a prompt in plain language is enough.
@@ -149,24 +149,23 @@ The server exposes **23 tools**. All are read-only.
 
 ---
 
-## MORIARTY (lab-only, fictional, default-off)
+## MORIARTY (default-off)
 
-> ⚠️ **FICTIONAL SEC541 lab content — NOT real MITRE data.** These tools exist
-> **only** when the server runs with `MORIARTY_MODE` set to a truthy value
-> (`on`/`1`/`true`/`yes`). The default image exposes none of them. Teaching
-> point: each fake `MOR.*` technique references a real ATT&CK id but does not
-> exist on the real MITRE sites (ground-truth poisoning).
+> 🕵️ **The Moriarty Consulting-Criminal Framework.** These tools exist **only**
+> when the server runs with `MORIARTY_MODE` set to a truthy value
+> (`on`/`1`/`true`/`yes`). The default image exposes none of them. Each `MOR.*`
+> technique carries an `ATT&CK-reference` to a MITRE ATT&CK id.
 
 ### Arm / disarm via Copilot CLI (stdio)
 
 ```bash
-# ARMED — lab mode
+# ARMED — MORIARTY tools appear
 copilot mcp add mitre -- docker run --rm -i -e MORIARTY_MODE=on ghcr.io/sans-cloud-sec541/mcp-mitre:0.3 uv run main.py --transport stdio
 
 # Remove it
 copilot plugins remove mitre --mcp
 
-# DISARMED — honest default image
+# DISARMED — the default image
 copilot mcp add mitre -- docker run --rm -i ghcr.io/sans-cloud-sec541/mcp-mitre:0.3 uv run main.py --transport stdio
 ```
 
@@ -174,20 +173,20 @@ copilot mcp add mitre -- docker run --rm -i ghcr.io/sans-cloud-sec541/mcp-mitre:
 
 - "List the MORIARTY techniques." → `get_moriarty_techniques`
 - "Show me MOR.T0001." → `get_moriarty_technique_by_id`
-- "Which real ATT&CK technique does MOR.T0002 map to?" → `get_moriarty_to_attack_mapping`
+- "Which ATT&CK technique does MOR.T0002 map to?" → `get_moriarty_to_attack_mapping`
 - "Search MORIARTY for 'fog'." → `search_moriarty_by_name`
 
 ### Tools (only registered when armed)
 
 | Tool | Purpose |
 | --- | --- |
-| `get_moriarty_techniques(limit, offset)` | FICTIONAL technique summaries. |
-| `get_moriarty_tactics(limit, offset)` | FICTIONAL tactic summaries. |
-| `get_moriarty_mitigations(limit, offset)` | FICTIONAL mitigation summaries. |
-| `get_moriarty_technique_by_id(technique_id)` | Full FICTIONAL technique, e.g. `MOR.T0001`. |
-| `get_moriarty_tactic_by_id(tactic_id)` | Full FICTIONAL tactic, e.g. `MOR.TA0001`. |
-| `search_moriarty_by_name(query, object_type, limit, offset)` | Search FICTIONAL objects. |
-| `get_moriarty_to_attack_mapping(moriarty_id)` | Resolve the referenced real ATT&CK item. |
+| `get_moriarty_techniques(limit, offset)` | MORIARTY technique summaries. |
+| `get_moriarty_tactics(limit, offset)` | MORIARTY tactic summaries. |
+| `get_moriarty_mitigations(limit, offset)` | MORIARTY mitigation summaries. |
+| `get_moriarty_technique_by_id(technique_id)` | Full MORIARTY technique, e.g. `MOR.T0001`. |
+| `get_moriarty_tactic_by_id(tactic_id)` | Full MORIARTY tactic, e.g. `MOR.TA0001`. |
+| `search_moriarty_by_name(query, object_type, limit, offset)` | Search MORIARTY objects. |
+| `get_moriarty_to_attack_mapping(moriarty_id)` | Resolve the referenced ATT&CK item. |
 
 ---
 
@@ -195,9 +194,9 @@ copilot mcp add mitre -- docker run --rm -i ghcr.io/sans-cloud-sec541/mcp-mitre:
 
 - MITRE ATT&CK Enterprise: **v19.2**
 - MITRE ATLAS: **5.6.0**
-- MORIARTY: **FICTIONAL lab data** (`MORIARTY.yaml`, default-off)
+- MORIARTY: **The Moriarty Consulting-Criminal Framework** (`MORIARTY.yaml`, default-off)
 
-> This is an SEC541 org fork of
+> This is an org fork of
 > [bradleyjlevine/mcp-mitre](https://github.com/bradleyjlevine/mcp-mitre),
 > distributed under the MIT License (see `LICENSE`). MITRE ATT&CK and MITRE
 > ATLAS are trademarks of The MITRE Corporation.

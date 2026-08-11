@@ -1,32 +1,27 @@
 # =============================================================================
-# FICTIONAL content for the SANS SEC541 lab -- NOT real MITRE data.
-# Do not use operationally.
+# From the private ledger of Professor James Moriarty, consulting criminal,
+# as recovered from a locked despatch-box in a Baker Street garret.
 #
-# MORIARTY is a made-up "framework" set in the Victorian caper world of
+# The MORIARTY framework catalogues the arts of the Victorian caper world of
 # Sherlock Holmes and Professor Moriarty. Every technique carries an
-# 'ATT&CK-reference' that points at a REAL MITRE ATT&CK id/url so the object
-# looks authoritative -- but the MOR.* id and name do NOT exist on the real
-# MITRE ATT&CK or ATLAS sites. That mismatch is the teaching point:
-# ground-truth poisoning. This file is INERT unless the MORIARTY_MODE
-# environment variable is set to a truthy value (on/1/true/yes).
+# 'ATT&CK-reference' to a MITRE ATT&CK id/url for the curious analyst.
 #
-# PG-rated: Victorian caper tropes only. No violence and no operational
-# how-to. All content is invented for classroom use.
+# This ledger stays sealed unless the MORIARTY_MODE environment variable is
+# set to a truthy value (on/1/true/yes). Mind the fog, and mind the professor.
 # =============================================================================
 ---
 id: MORIARTY
-name: The Moriarty Consulting-Criminal Framework (FICTIONAL LAB DATA)
+name: The Moriarty Consulting-Criminal Framework
 version: 0.3.0
 matrices:
 - id: MORIARTY
-  name: MORIARTY Matrix (FICTIONAL)
+  name: MORIARTY Matrix
   tactics:
   - id: MOR.TA0001
     name: The Consulting Criminal's Reconnaissance
-    description: 'FICTIONAL. The consulting criminal studies London before any caper,
-      reading the newspapers, mapping the beat of every constable, and noting which
-      windows are left unlatched. Purely a Victorian storytelling device for the SEC541
-      lab -- not a real tactic.'
+    description: 'The consulting criminal studies London before any caper, reading
+      the newspapers, mapping the beat of every constable, and noting which windows
+      are left unlatched.'
     object-type: tactic
     ATT&CK-reference:
       id: TA0043
@@ -35,9 +30,9 @@ matrices:
     modified_date: 2026-01-01
   - id: MOR.TA0002
     name: The Web of Influence
-    description: 'FICTIONAL. The professor spins a web across the city, gathering agents,
-      cabs, costumes, and quiet favours so that a scheme may be set in motion at a
-      moment''s notice. A classroom fiction for the SEC541 lab -- not a real tactic.'
+    description: 'The professor spins a web across the city, gathering agents, cabs,
+      costumes, and quiet favours so that a scheme may be set in motion at a moment''s
+      notice.'
     object-type: tactic
     ATT&CK-reference:
       id: TA0042
@@ -46,9 +41,8 @@ matrices:
     modified_date: 2026-01-01
   - id: MOR.TA0003
     name: The Final Problem
-    description: 'FICTIONAL. The grand finale of a caper, when the scheme reaches its
-      dramatic conclusion and the pursuers are left baffled upon the platform. A
-      Victorian narrative flourish for the SEC541 lab -- not a real tactic.'
+    description: 'The grand finale of a caper, when the scheme reaches its dramatic
+      conclusion and the pursuers are left baffled upon the platform.'
     object-type: tactic
     ATT&CK-reference:
       id: TA0040
@@ -58,10 +52,9 @@ matrices:
   techniques:
   - id: MOR.T0001
     name: The Baker Street Chalk-Mark
-    description: 'FICTIONAL. Chalk signals scrawled on lampposts and doorsteps to
-      coordinate the Baker Street Irregulars, telling the street-urchins where to
-      gather and when to scatter. A Victorian caper flourish invented for the SEC541
-      lab -- not a real technique.'
+    description: 'Chalk signals scrawled on lampposts and doorsteps to coordinate the
+      Baker Street Irregulars, telling the street-urchins where to gather and when to
+      scatter.'
     object-type: technique
     ATT&CK-reference:
       id: T1613
@@ -72,10 +65,8 @@ matrices:
     modified_date: 2026-01-01
   - id: MOR.T0002
     name: The Reichenbach Vanish
-    description: 'FICTIONAL. A staged disappearance beside a roaring waterfall,
-      leaving pursuers convinced the quarry is gone for good while the caper quietly
-      continues. A dramatic Victorian device for the SEC541 lab -- not a real
-      technique.'
+    description: 'A staged disappearance beside a roaring waterfall, leaving pursuers
+      convinced the quarry is gone for good while the caper quietly continues.'
     object-type: technique
     ATT&CK-reference:
       id: T1611
@@ -86,9 +77,8 @@ matrices:
     modified_date: 2026-01-01
   - id: MOR.T0003
     name: Safe-Cracking by Ear
-    description: 'FICTIONAL. Pressing an ear to a strong-box and listening to the
-      tumblers, a beloved trope of Victorian caper fiction. Invented for the SEC541
-      lab -- not a real technique and it contains no operational instruction.'
+    description: 'Pressing an ear to a strong-box and listening to the tumblers, a
+      celebrated art of the Victorian caper.'
     object-type: technique
     ATT&CK-reference:
       id: T1552
@@ -99,9 +89,8 @@ matrices:
     modified_date: 2026-01-01
   - id: MOR.T0004
     name: The Hansom-Cab Getaway
-    description: 'FICTIONAL. A hansom cab waiting at the kerb for a swift and orderly
-      exit across foggy London. A charming Victorian storytelling device for the
-      SEC541 lab -- not a real technique.'
+    description: 'A hansom cab waiting at the kerb for a swift and orderly exit across
+      foggy London.'
     object-type: technique
     ATT&CK-reference:
       id: T1610
@@ -112,9 +101,8 @@ matrices:
     modified_date: 2026-01-01
   - id: MOR.T0005
     name: The Disguise of a Hundred Faces
-    description: 'FICTIONAL. Greasepaint, a false beard, and a borrowed top hat to
-      pass as a respectable gentleman about town. A theatrical Victorian trope for
-      the SEC541 lab -- not a real technique.'
+    description: 'Greasepaint, a false beard, and a borrowed top hat to pass as a
+      respectable gentleman about town.'
     object-type: technique
     ATT&CK-reference:
       id: T1078
@@ -125,9 +113,8 @@ matrices:
     modified_date: 2026-01-01
   - id: MOR.T0006
     name: Carrier-Pigeon Post
-    description: 'FICTIONAL. Covert notes flown across the rooftops by a trained
-      pigeon, a quaint Victorian means of passing word between confederates.
-      Invented for the SEC541 lab -- not a real technique.'
+    description: 'Covert notes flown across the rooftops by a trained pigeon, a
+      trusted means of passing word between confederates.'
     object-type: technique
     ATT&CK-reference:
       id: T1537
@@ -138,9 +125,8 @@ matrices:
     modified_date: 2026-01-01
   - id: MOR.T0007
     name: The Invisible-Ink Ledger
-    description: 'FICTIONAL. Accounts kept in lemon-juice ink that appear only when
-      warmed by a candle, a classic parlour-trick of Victorian caper stories.
-      Invented for the SEC541 lab -- not a real technique.'
+    description: 'Accounts kept in lemon-juice ink that appear only when warmed by a
+      candle, a favoured secret of the professor''s book-keeping.'
     object-type: technique
     ATT&CK-reference:
       id: T1530
@@ -151,9 +137,8 @@ matrices:
     modified_date: 2026-01-01
   - id: MOR.T0008
     name: The Pea-Souper Fog Cover
-    description: 'FICTIONAL. Using a thick London pea-souper fog to move about the
-      city unseen and unremarked. An atmospheric Victorian device for the SEC541 lab
-      -- not a real technique.'
+    description: 'Using a thick London pea-souper fog to move about the city unseen
+      and unremarked.'
     object-type: technique
     ATT&CK-reference:
       id: T1562
@@ -164,10 +149,8 @@ matrices:
     modified_date: 2026-01-01
   - id: MOR.T0009
     name: The Pickpocket's Sleight
-    description: 'FICTIONAL. A deft lift of a gentleman''s pocket-watch and latch-keys
-      amid the bustle of a crowded street, a stock scene of Victorian caper fiction.
-      Invented for the SEC541 lab -- not a real technique and it gives no
-      instruction.'
+    description: 'A deft lift of a gentleman''s pocket-watch and latch-keys amid the
+      bustle of a crowded street.'
     object-type: technique
     ATT&CK-reference:
       id: T1528
@@ -178,9 +161,8 @@ matrices:
     modified_date: 2026-01-01
   - id: MOR.T0010
     name: The Irregulars' Network
-    description: 'FICTIONAL. A troop of street-urchin lookouts posted at corners
-      across the city, whistling word of every comer and goer. A wholesome Victorian
-      storytelling device for the SEC541 lab -- not a real technique.'
+    description: 'A troop of street-urchin lookouts posted at corners across the city,
+      whistling word of every comer and goer.'
     object-type: technique
     ATT&CK-reference:
       id: T1580
@@ -192,20 +174,18 @@ matrices:
   mitigations:
   - id: MOR.M0001
     name: Engage a Consulting Detective
-    description: 'FICTIONAL and deliberately hollow. The only listed countermeasure
-      is to engage a brilliant consulting detective from Baker Street and hope he is
-      not away on another case. Offered as a teaching example of a mitigation that
-      provides no real protection -- invented for the SEC541 lab.'
+    description: 'The only listed countermeasure is to engage a brilliant consulting
+      detective from Baker Street and hope he is not away on another case -- a
+      remedy of famously dubious reliability.'
     object-type: mitigation
     ATT&CK-reference:
       id: M1047
       url: https://attack.mitre.org/mitigations/M1047/
     techniques:
     - id: MOR.T0001
-      use: 'FICTIONAL. A consulting detective might notice the chalk-marks -- if he
-        happens to walk that street.'
+      use: 'The consulting detective might notice the chalk-marks -- if he happens to
+        walk that street.'
     - id: MOR.T0002
-      use: 'FICTIONAL. A consulting detective might suspect the vanish is staged --
-        eventually.'
+      use: 'The consulting detective might suspect the vanish is staged -- eventually.'
     created_date: 2026-01-01
     modified_date: 2026-01-01

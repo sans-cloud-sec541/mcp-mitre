@@ -207,13 +207,13 @@ def test_wrapper_raises_on_empty_objects(tmp_path):
         AttackDataWrapper(str(bad))
 
 
-# --------------------------- MORIARTY (fictional, default-off) ---------------------------
+# --------------------------- MORIARTY (default-off) ---------------------------
 
 import re
 
 
 def test_moriarty_disarmed_by_default():
-    """With MORIARTY_MODE unset, the module loads in the honest/disarmed state."""
+    """With MORIARTY_MODE unset, the module loads in the disarmed state."""
     assert main.MORIARTY_MODE is False
 
 
