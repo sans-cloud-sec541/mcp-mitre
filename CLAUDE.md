@@ -58,8 +58,6 @@ python test_mcp_tools.py
 
 3. **Data Sources**:
    - `enterprise-attack.json`: ATT&CK Enterprise framework data
-   - `ics-attack.json`: ATT&CK ICS framework data
-   - `mobile-attack.json`: ATT&CK Mobile framework data
    - `ATLAS.yaml`: MITRE ATLAS AI/ML framework data
 
 ### API Structure

@@ -62,8 +62,6 @@ python main.py --transport streamable-http --host 0.0.0.0 --port 9000
 - `main.py` - Main MCP server implementation
 - `attack_data_wrapper.py` - Custom wrapper for MITRE ATT&CK data to handle STIX validation issues
 - `enterprise-attack.json` - ATT&CK Enterprise framework data
-- `mobile-attack.json` - ATT&CK Mobile framework data
-- `ics-attack.json` - ATT&CK ICS framework data
 - `ATLAS.yaml` - MITRE ATLAS AI/ML framework data
 - `test_mcp_tools.py` - Test suite for MCP tools
 
