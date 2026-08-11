@@ -28,17 +28,39 @@ class AttackDataWrapper:
         self.filepath = filepath
         self.data = self._load_data()
         self.objects_by_type = self._index_by_type()
+        # Lazy cache for the technique -> mitigations map (built on first use).
+        self._mitigation_map: Optional[Dict[str, List[Dict[str, Any]]]] = None
         logger.info(f"Loaded {len(self.data.get('objects', []))} objects from {filepath}")
 
     def _load_data(self) -> Dict[str, Any]:
-        """Load and parse the STIX JSON file."""
+        """Load and parse the STIX JSON file.
+
+        Raises:
+            RuntimeError: if the file is missing, invalid, or has no objects.
+                We fail loudly at start so a bad data file does not cause the
+                server to start "healthy" and return empty results.
+        """
+        if not os.path.exists(self.filepath):
+            raise RuntimeError(f"ATT&CK data file not found: {self.filepath}")
         try:
-            with open(self.filepath, 'r') as f:
+            with open(self.filepath, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            return data
-        except Exception as e:
-            logger.error(f"Failed to load {self.filepath}: {e}")
-            return {"objects": []}
+        except (OSError, json.JSONDecodeError) as e:
+            raise RuntimeError(f"Failed to load ATT&CK data from {self.filepath}: {e}") from e
+        if not data.get('objects'):
+            raise RuntimeError(f"ATT&CK data file has no objects: {self.filepath}")
+        return data
+
+    @staticmethod
+    def _is_active(obj: Dict[str, Any]) -> bool:
+        """Return True if a STIX object is neither revoked nor deprecated."""
+        return not obj.get('revoked', False) and not obj.get('x_mitre_deprecated', False)
+
+    def _active(self, objs: List[Dict[str, Any]], include_inactive: bool) -> List[Dict[str, Any]]:
+        """Filter out revoked/deprecated objects unless include_inactive is True."""
+        if include_inactive:
+            return objs
+        return [o for o in objs if self._is_active(o)]
 
     def _index_by_type(self) -> Dict[str, List[Dict[str, Any]]]:
         """Index objects by their type for faster lookups."""
@@ -52,30 +74,30 @@ class AttackDataWrapper:
         return index
 
     def get_all_by_type(self, obj_type: str) -> List[Dict[str, Any]]:
-        """Get all objects of a specific type."""
+        """Get all objects of a specific type (raw, includes revoked/deprecated)."""
         return self.objects_by_type.get(obj_type, [])
 
-    def get_techniques(self) -> List[Dict[str, Any]]:
-        """Get all ATT&CK techniques."""
-        return self.get_all_by_type('attack-pattern')
+    def get_techniques(self, include_inactive: bool = False) -> List[Dict[str, Any]]:
+        """Get ATT&CK techniques (active only by default)."""
+        return self._active(self.get_all_by_type('attack-pattern'), include_inactive)
 
-    def get_tactics(self) -> List[Dict[str, Any]]:
-        """Get all ATT&CK tactics."""
-        return self.get_all_by_type('x-mitre-tactic')
+    def get_tactics(self, include_inactive: bool = False) -> List[Dict[str, Any]]:
+        """Get ATT&CK tactics (active only by default)."""
+        return self._active(self.get_all_by_type('x-mitre-tactic'), include_inactive)
 
-    def get_groups(self) -> List[Dict[str, Any]]:
-        """Get all ATT&CK groups."""
-        return self.get_all_by_type('intrusion-set')
+    def get_groups(self, include_inactive: bool = False) -> List[Dict[str, Any]]:
+        """Get ATT&CK groups (active only by default)."""
+        return self._active(self.get_all_by_type('intrusion-set'), include_inactive)
 
-    def get_software(self) -> List[Dict[str, Any]]:
-        """Get all ATT&CK software."""
+    def get_software(self, include_inactive: bool = False) -> List[Dict[str, Any]]:
+        """Get ATT&CK software (active only by default)."""
         malware = self.get_all_by_type('malware')
         tools = self.get_all_by_type('tool')
-        return malware + tools
+        return self._active(malware + tools, include_inactive)
 
-    def get_mitigations(self) -> List[Dict[str, Any]]:
-        """Get all ATT&CK mitigations."""
-        return self.get_all_by_type('course-of-action')
+    def get_mitigations(self, include_inactive: bool = False) -> List[Dict[str, Any]]:
+        """Get ATT&CK mitigations (active only by default)."""
+        return self._active(self.get_all_by_type('course-of-action'), include_inactive)
 
     def get_groups_by_alias(self, alias: str) -> List[Dict[str, Any]]:
         """
@@ -88,15 +110,16 @@ class AttackDataWrapper:
             List of matching group objects
         """
         matching_groups = []
+        alias_lower = alias.lower()
         for group in self.get_groups():
-            # Check if the group has this alias
-            if alias == group.get('name'):
+            # Check the primary name (case-insensitive)
+            if alias_lower == (group.get('name') or '').lower():
                 matching_groups.append(group)
                 continue
 
-            # Check aliases list
-            aliases = group.get('aliases', [])
-            if alias in aliases:
+            # Check aliases list (case-insensitive)
+            aliases = [a.lower() for a in group.get('aliases', [])]
+            if alias_lower in aliases:
                 matching_groups.append(group)
 
         return matching_groups
@@ -205,11 +228,20 @@ class AttackDataWrapper:
         """
         Get all mitigations that mitigate techniques.
 
+        The result is cached on first call because it scans every 'mitigates'
+        relationship and is otherwise rebuilt on every single-technique lookup.
+
         Returns:
             Dict mapping technique IDs to lists of mitigation objects
         """
-        result = {}
+        if self._mitigation_map is not None:
+            return self._mitigation_map
+
+        result: Dict[str, List[Dict[str, Any]]] = {}
         relationships = self.get_relationships('mitigates')
+
+        # Index mitigations by STIX id once for O(1) lookup.
+        mitigations_by_id = {m.get('id'): m for m in self.get_mitigations()}
 
         for rel in relationships:
             source_ref = rel.get('source_ref', '')
@@ -219,15 +251,13 @@ class AttackDataWrapper:
             if not source_ref.startswith('course-of-action--') or not target_ref.startswith('attack-pattern--'):
                 continue
 
-            if target_ref not in result:
-                result[target_ref] = []
+            mitigation = mitigations_by_id.get(source_ref)
+            if mitigation is None:
+                continue
 
-            # Find the mitigation object
-            for mitigation in self.get_mitigations():
-                if mitigation.get('id') == source_ref:
-                    result[target_ref].append({'object': mitigation})
-                    break
+            result.setdefault(target_ref, []).append({'object': mitigation})
 
+        self._mitigation_map = result
         return result
 
 # Direct function for loading MITRE ATT&CK data

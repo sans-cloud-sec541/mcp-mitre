@@ -19,6 +19,26 @@ def _extract_mitre_id(obj):
             return ref["external_id"]
     return None
 
+def _find_by_mitre_id(objects, mitre_id):
+    """Find a STIX object whose mitre-attack external_id matches (case-insensitive).
+
+    Args:
+        objects: Iterable of STIX dicts to search.
+        mitre_id: MITRE ID such as 'T1055' or 'TA0001'.
+
+    Returns:
+        Tuple (obj, mitre_ref) of the matching object and its mitre-attack
+        external reference, or (None, None) if nothing matches.
+    """
+    mitre_id = mitre_id.upper()
+    for d in objects:
+        for ref in d.get("external_references", []):
+            if (ref.get("source_name") == "mitre-attack"
+                    and ref.get("external_id")
+                    and ref.get("external_id").upper() == mitre_id):
+                return d, ref
+    return None, None
+
 def _summary(obj):
     """Create summary object with id, mitre_id, name, and description."""
     d = obj
@@ -78,91 +98,101 @@ mcp = FastMCP(
 
 # ---------- ATT&CK summary endpoints (testable helpers and MCP wrappers) ----------
 
-def _get_attack_data_paginated(data_getter_func, limit=20, offset=0):
+def _get_attack_data_paginated(data_getter_func, limit=20, offset=0, include_deprecated=False):
     """Generic helper for paginated ATT&CK data with summaries.
-    
+
     Args:
-        data_getter_func: Function to retrieve data from attack_data
+        data_getter_func: Wrapper getter to retrieve data (accepts include_inactive)
         limit: Maximum number of items to return
         offset: Number of items to skip
-        
+        include_deprecated: Include revoked/deprecated objects when True
+
     Returns:
         Dict with 'items' (list of summaries) and 'total' (total count)
     """
-    all_items = list(data_getter_func())
+    all_items = list(data_getter_func(include_inactive=include_deprecated))
     paged = all_items[offset:offset+limit]
     summaries = [_summary(item) for item in paged]
     return {"items": summaries, "total": len(all_items)}
 
-def _get_techniques(limit=20, offset=0):
-    """Get paginated list of ATT&CK technique summaries."""
-    return _get_attack_data_paginated(attack_data.get_techniques, limit, offset)
+def _get_techniques(limit=20, offset=0, platform=None, include_deprecated=False):
+    """Get paginated list of ATT&CK technique summaries, optionally by platform."""
+    all_items = attack_data.get_techniques(include_inactive=include_deprecated)
+    if platform:
+        platform_lower = platform.lower()
+        all_items = [
+            t for t in all_items
+            if any(platform_lower == p.lower() for p in t.get("x_mitre_platforms", []))
+        ]
+    paged = all_items[offset:offset+limit]
+    summaries = [_summary(item) for item in paged]
+    return {"items": summaries, "total": len(all_items)}
 
 @mcp.tool(
     name="get_techniques",
-    description="Return a paginated summary list of ATT&CK techniques.",
+    description="Return a paginated summary list of ATT&CK techniques. Optionally filter by platform (e.g. 'Windows', 'Linux', 'macOS'). Revoked/deprecated techniques are excluded unless include_deprecated is true.",
     output_schema={"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object"}}, "total": {"type": "integer"}}},
     annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False}
 )
-def get_techniques(limit: int = 20, offset: int = 0):
+def get_techniques(limit: int = 20, offset: int = 0, platform: str = None, include_deprecated: bool = False):
     """MCP tool wrapper for getting ATT&CK techniques."""
-    return _get_techniques(limit, offset)
+    return _get_techniques(limit, offset, platform, include_deprecated)
 
-def _get_tactics(limit=20, offset=0):
+def _get_tactics(limit=20, offset=0, include_deprecated=False):
     """Get paginated list of ATT&CK tactic summaries."""
-    return _get_attack_data_paginated(attack_data.get_tactics, limit, offset)
+    return _get_attack_data_paginated(attack_data.get_tactics, limit, offset, include_deprecated)
 
 @mcp.tool(
     name="get_tactics",
-    description="Return a paginated summary list of ATT&CK tactics.",
+    description="Return a paginated summary list of ATT&CK tactics. Revoked/deprecated tactics are excluded unless include_deprecated is true.",
     output_schema={"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object"}}, "total": {"type": "integer"}}},
     annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False}
 )
-def get_tactics(limit: int = 20, offset: int = 0):
+def get_tactics(limit: int = 20, offset: int = 0, include_deprecated: bool = False):
     """MCP tool wrapper for getting ATT&CK tactics."""
-    return _get_tactics(limit, offset)
+    return _get_tactics(limit, offset, include_deprecated)
 
-def _get_groups(limit=20, offset=0):
+def _get_groups(limit=20, offset=0, include_deprecated=False):
     """Get paginated list of ATT&CK group summaries."""
-    return _get_attack_data_paginated(attack_data.get_groups, limit, offset)
+    return _get_attack_data_paginated(attack_data.get_groups, limit, offset, include_deprecated)
 
 @mcp.tool(
     name="get_groups",
-    description="Return a paginated summary list of ATT&CK groups.",
+    description="Return a paginated summary list of ATT&CK groups. Revoked/deprecated groups are excluded unless include_deprecated is true.",
     output_schema={"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object"}}, "total": {"type": "integer"}}},
     annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False}
 )
-def get_groups(limit: int = 20, offset: int = 0):
+def get_groups(limit: int = 20, offset: int = 0, include_deprecated: bool = False):
     """MCP tool wrapper for getting ATT&CK groups."""
-    return _get_groups(limit, offset)
+    return _get_groups(limit, offset, include_deprecated)
 
-def _get_software(limit=20, offset=0):
+def _get_software(limit=20, offset=0, include_deprecated=False):
     """Get paginated list of ATT&CK software summaries."""
-    return _get_attack_data_paginated(attack_data.get_software, limit, offset)
+    return _get_attack_data_paginated(attack_data.get_software, limit, offset, include_deprecated)
 
 @mcp.tool(
     name="get_software",
-    description="Return a paginated summary list of ATT&CK software.",
+    description="Return a paginated summary list of ATT&CK software. Revoked/deprecated software is excluded unless include_deprecated is true.",
     output_schema={"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object"}}, "total": {"type": "integer"}}},
     annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False}
 )
-def get_software(limit: int = 20, offset: int = 0):
+def get_software(limit: int = 20, offset: int = 0, include_deprecated: bool = False):
     """MCP tool wrapper for getting ATT&CK software."""
-    return _get_software(limit, offset)
+    return _get_software(limit, offset, include_deprecated)
 
-def _get_mitigations(limit=20, offset=0):
+def _get_mitigations(limit=20, offset=0, include_deprecated=False):
     """Get paginated list of ATT&CK mitigation summaries."""
-    return _get_attack_data_paginated(attack_data.get_mitigations, limit, offset)
+    return _get_attack_data_paginated(attack_data.get_mitigations, limit, offset, include_deprecated)
 
 @mcp.tool(
     name="get_mitigations",
-    description="Return a paginated summary list of ATT&CK mitigations.",
+    description="Return a paginated summary list of ATT&CK mitigations. Revoked/deprecated mitigations are excluded unless include_deprecated is true.",
     output_schema={"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object"}}, "total": {"type": "integer"}}},
     annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False}
 )
-def get_mitigations(limit: int = 20, offset: int = 0):
+def get_mitigations(limit: int = 20, offset: int = 0, include_deprecated: bool = False):
     """MCP tool wrapper for getting ATT&CK mitigations."""
-    return _get_mitigations(limit, offset)
+    return _get_mitigations(limit, offset, include_deprecated)
 
 # ---------- ATT&CK by-ID endpoints (testable helpers and MCP wrappers) ----------
 
@@ -175,24 +205,22 @@ def _get_technique_by_id(technique_id):
     Returns:
         Dict with technique details or empty dict if not found
     """
-    tech_id = technique_id.upper()
-    for t in attack_data.get_techniques():
-        d = t
-        for ref in d.get("external_references", []):
-            if ref.get("external_id") and ref.get("source_name") and ref.get("source_name") == "mitre-attack" and ref.get("external_id") == tech_id:
-                return {
-                    "name": d.get("name", None),
-                    "description": d.get("description", None),
-                    "id": d.get("id", None),
-                    "type": d.get("type", None),
-                    "mitre_link": ref.get("url", None),
-                    "x_mitre_data_sources": list(d.get("x_mitre_data_sources", [])),
-                    "x_mitre_detection": d.get("x_mitre_detection", None),
-                    "x_mitre_platforms": list(d.get("x_mitre_platforms", [])),
-                    "x_mitre_domains": list(d.get("x_mitre_domains", [])),
-                    "kill_chain_phases": [p.get("phase_name", None) for p in d.get("kill_chain_phases", []) if p.get("phase_name")]
-                }
-    return {}
+    tech, ref = _find_by_mitre_id(attack_data.get_all_by_type('attack-pattern'), technique_id)
+    if not tech:
+        return {}
+    d = tech
+    return {
+        "name": d.get("name", None),
+        "description": d.get("description", None),
+        "id": d.get("id", None),
+        "type": d.get("type", None),
+        "mitre_link": ref.get("url", None),
+        "x_mitre_data_sources": list(d.get("x_mitre_data_sources", [])),
+        "x_mitre_detection": d.get("x_mitre_detection", None),
+        "x_mitre_platforms": list(d.get("x_mitre_platforms", [])),
+        "x_mitre_domains": list(d.get("x_mitre_domains", [])),
+        "kill_chain_phases": [p.get("phase_name", None) for p in d.get("kill_chain_phases", []) if p.get("phase_name")]
+    }
 
 @mcp.tool(
     name="get_technique_by_id",
@@ -213,20 +241,18 @@ def _get_tactic_by_id(tactic_id):
     Returns:
         Dict with tactic details or empty dict if not found
     """
-    tactic_id = tactic_id.upper()
-    for t in attack_data.get_tactics():
-        d = t
-        for ref in d.get("external_references", []):
-            if ref.get("external_id") and ref.get("source_name") and ref.get("source_name") == "mitre-attack" and ref.get("external_id") == tactic_id:
-                return {
-                    "name": d.get("name", None),
-                    "description": d.get("description", None),
-                    "id": d.get("id", None),
-                    "type": d.get("type", None),
-                    "mitre_link": ref.get("url", None),
-                    "x_mitre_shortname": d.get("x_mitre_shortname", None)
-                }
-    return {}
+    tactic, ref = _find_by_mitre_id(attack_data.get_all_by_type('x-mitre-tactic'), tactic_id)
+    if not tactic:
+        return {}
+    d = tactic
+    return {
+        "name": d.get("name", None),
+        "description": d.get("description", None),
+        "id": d.get("id", None),
+        "type": d.get("type", None),
+        "mitre_link": ref.get("url", None),
+        "x_mitre_shortname": d.get("x_mitre_shortname", None)
+    }
 
 @mcp.tool(
     name="get_tactic_by_id",
@@ -247,21 +273,19 @@ def _get_mitigation_by_id(mitigation_id):
     Returns:
         Dict with mitigation details or empty dict if not found
     """
-    mitigation_id = mitigation_id.upper()
-    for m in attack_data.get_mitigations():
-        d = m
-        for ref in d.get("external_references", []):
-            if ref.get("external_id") and ref.get("source_name") and ref.get("source_name") == "mitre-attack" and ref.get("external_id") == mitigation_id:
-                return {
-                    "name": d.get("name", None),
-                    "description": d.get("description", None),
-                    "id": d.get("id", None),
-                    "type": d.get("type", None),
-                    "mitre_link": ref.get("url", None),
-                    "x_mitre_shortname": d.get("x_mitre_shortname", None),
-                    "x_mitre_domains": list(d.get("x_mitre_domains", []))
-                }
-    return {}
+    mitigation, ref = _find_by_mitre_id(attack_data.get_all_by_type('course-of-action'), mitigation_id)
+    if not mitigation:
+        return {}
+    d = mitigation
+    return {
+        "name": d.get("name", None),
+        "description": d.get("description", None),
+        "id": d.get("id", None),
+        "type": d.get("type", None),
+        "mitre_link": ref.get("url", None),
+        "x_mitre_shortname": d.get("x_mitre_shortname", None),
+        "x_mitre_domains": list(d.get("x_mitre_domains", []))
+    }
 
 @mcp.tool(
     name="get_mitigation_by_id",
@@ -400,13 +424,14 @@ def get_techniques_used_by_group(group_alias: str, limit: int = 20, offset: int 
     """MCP tool wrapper for getting techniques used by group."""
     return _get_techniques_used_by_group(group_alias, limit, offset)
 
-def _get_techniques_by_tactic(tactic_id, limit=20, offset=0):
+def _get_techniques_by_tactic(tactic_id, limit=20, offset=0, platform=None):
     """Get techniques that belong to a specific tactic.
     
     Args:
         tactic_id: MITRE tactic ID (e.g., 'TA0001') or shortname (e.g., 'initial-access')
         limit: Maximum number of items to return
         offset: Number of items to skip
+        platform: Optional platform filter (e.g., 'Windows', 'Linux', 'macOS')
         
     Returns:
         Dict with 'items' (list of technique summaries) and 'total' count
@@ -424,6 +449,13 @@ def _get_techniques_by_tactic(tactic_id, limit=20, offset=0):
     # Use the built-in method to get techniques for this tactic (enterprise domain)
     technique_objects = attack_data.get_techniques_by_tactic(tactic_shortname, "enterprise-attack")
     all_techniques = list(technique_objects)
+
+    if platform:
+        platform_lower = platform.lower()
+        all_techniques = [
+            t for t in all_techniques
+            if any(platform_lower == p.lower() for p in t.get("x_mitre_platforms", []))
+        ]
     
     # Apply pagination
     paged = all_techniques[offset:offset+limit]
@@ -433,13 +465,13 @@ def _get_techniques_by_tactic(tactic_id, limit=20, offset=0):
 
 @mcp.tool(
     name="get_techniques_by_tactic",
-    description="Return techniques that belong to a specific ATT&CK tactic. Use tactic ID like 'TA0001', 'TA0002', etc.",
+    description="Return techniques that belong to a specific ATT&CK tactic. Use tactic ID like 'TA0001', 'TA0002', etc. Optionally filter by platform (e.g. 'Windows', 'Linux', 'macOS').",
     output_schema={"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object"}}, "total": {"type": "integer"}}},
     annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False}
 )
-def get_techniques_by_tactic(tactic_id: str, limit: int = 20, offset: int = 0):
+def get_techniques_by_tactic(tactic_id: str, limit: int = 20, offset: int = 0, platform: str = None):
     """MCP tool wrapper for getting techniques by tactic."""
-    return _get_techniques_by_tactic(tactic_id, limit, offset)
+    return _get_techniques_by_tactic(tactic_id, limit, offset, platform)
 
 def _get_mitigations_for_technique(technique_id):
     """Get mitigations that counter a specific technique.
@@ -450,20 +482,11 @@ def _get_mitigations_for_technique(technique_id):
     Returns:
         Dict with 'items' (list of mitigation summaries) and 'total' count
     """
-    # First find the technique STIX ID from the technique ID
-    technique_stix_id = None
-    technique_id_upper = technique_id.upper()
-    
-    for technique in attack_data.get_techniques():
-        tech_dict = technique
-        for ref in tech_dict.get("external_references", []):
-            if (ref.get("external_id") and ref.get("source_name") == "mitre-attack" and 
-                ref.get("external_id") == technique_id_upper):
-                technique_stix_id = tech_dict.get("id")
-                break
-        if technique_stix_id:
-            break
-    
+    # First find the technique STIX ID from the technique ID (raw set, so
+    # explicit lookups still resolve revoked/deprecated techniques).
+    technique, _ = _find_by_mitre_id(attack_data.get_all_by_type('attack-pattern'), technique_id)
+    technique_stix_id = technique.get("id") if technique else None
+
     if not technique_stix_id:
         return {"items": [], "total": 0}
     
@@ -491,27 +514,31 @@ def get_mitigations_for_technique(technique_id: str):
     """MCP tool wrapper for getting mitigations for technique."""
     return _get_mitigations_for_technique(technique_id)
 
-def _search_by_name(query, object_type="all", limit=20):
+def _search_by_name(query, object_type="all", limit=20, offset=0, include_deprecated=False):
     """Search across ATT&CK objects by name (case-insensitive).
     
     Args:
         query: Search term to match against names
         object_type: Type to search - 'all', 'techniques', 'tactics', 'groups', 'software', 'mitigations'
         limit: Maximum number of results to return
+        offset: Number of results to skip (for pagination)
+        include_deprecated: Include revoked/deprecated objects when True
         
     Returns:
-        Dict with 'items' (list of matching summaries) and 'total' count
+        Dict with 'items' (list of matching summaries) and 'total' (count of
+        all matches, not just the returned page)
     """
     results = []
     query_lower = query.lower()
+    inc = include_deprecated
     
     # Define search functions for each object type
     search_targets = {
-        'techniques': attack_data.get_techniques,
-        'tactics': attack_data.get_tactics, 
-        'groups': attack_data.get_groups,
-        'software': attack_data.get_software,
-        'mitigations': attack_data.get_mitigations
+        'techniques': lambda: attack_data.get_techniques(include_inactive=inc),
+        'tactics': lambda: attack_data.get_tactics(include_inactive=inc),
+        'groups': lambda: attack_data.get_groups(include_inactive=inc),
+        'software': lambda: attack_data.get_software(include_inactive=inc),
+        'mitigations': lambda: attack_data.get_mitigations(include_inactive=inc)
     }
     
     # Determine which object types to search
@@ -522,34 +549,27 @@ def _search_by_name(query, object_type="all", limit=20):
     else:
         return {"items": [], "total": 0, "error": f"Unknown object_type: {object_type}"}
     
-    # Search each object type
+    # Collect ALL matches first, so 'total' is accurate.
     for obj_type in types_to_search:
-        for obj in search_targets[obj_type]():
-            obj_dict = obj
+        for obj_dict in search_targets[obj_type]():
             name = obj_dict.get('name', '')
             if name and query_lower in name.lower():
                 summary = _summary(obj_dict)
                 summary['object_type'] = obj_type  # Add type for clarity
                 results.append(summary)
-                
-                # Stop if we've hit the limit
-                if len(results) >= limit:
-                    break
-        
-        if len(results) >= limit:
-            break
     
-    return {"items": results[:limit], "total": len(results)}
+    paged = results[offset:offset+limit]
+    return {"items": paged, "total": len(results)}
 
 @mcp.tool(
     name="search_by_name",
-    description="Search ATT&CK objects by name. Use object_type to filter: 'all', 'techniques', 'tactics', 'groups', 'software', 'mitigations'.",
+    description="Search ATT&CK objects by name. Use object_type to filter: 'all', 'techniques', 'tactics', 'groups', 'software', 'mitigations'. Supports offset paging; total reflects all matches. Revoked/deprecated objects are excluded unless include_deprecated is true.",
     output_schema={"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object"}}, "total": {"type": "integer"}}},
     annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False}
 )
-def search_by_name(query: str, object_type: str = "all", limit: int = 20):
+def search_by_name(query: str, object_type: str = "all", limit: int = 20, offset: int = 0, include_deprecated: bool = False):
     """MCP tool wrapper for searching by name."""
-    return _search_by_name(query, object_type, limit)
+    return _search_by_name(query, object_type, limit, offset, include_deprecated)
 
 # ---------- ATLAS summary endpoints (testable helpers and MCP wrappers) ----------
 
@@ -647,16 +667,18 @@ def get_atlas_mitigation_by_id(mitigation_id: str):
 
 # ---------- Additional ATLAS functions ----------
 
-def _search_atlas_by_name(query, object_type="all", limit=20):
+def _search_atlas_by_name(query, object_type="all", limit=20, offset=0):
     """Search across ATLAS objects by name (case-insensitive).
     
     Args:
         query: Search term to match against names
         object_type: Type to search - 'all', 'techniques', 'tactics', 'mitigations'
         limit: Maximum number of results to return
+        offset: Number of results to skip (for pagination)
         
     Returns:
-        Dict with 'items' (list of matching summaries) and 'total' count
+        Dict with 'items' (list of matching summaries) and 'total' (count of
+        all matches, not just the returned page)
     """
     results = []
     query_lower = query.lower()
@@ -676,7 +698,7 @@ def _search_atlas_by_name(query, object_type="all", limit=20):
     else:
         return {"items": [], "total": 0, "error": f"Unknown object_type: {object_type}"}
     
-    # Search each object type
+    # Collect ALL matches first, so 'total' is accurate.
     for obj_type in types_to_search:
         for obj in search_targets[obj_type]:
             name = obj.get('name', '')
@@ -684,25 +706,19 @@ def _search_atlas_by_name(query, object_type="all", limit=20):
                 summary = _atlas_summary(obj)
                 summary['object_type'] = obj_type  # Add type for clarity
                 results.append(summary)
-                
-                # Stop if we've hit the limit
-                if len(results) >= limit:
-                    break
-        
-        if len(results) >= limit:
-            break
     
-    return {"items": results[:limit], "total": len(results)}
+    paged = results[offset:offset+limit]
+    return {"items": paged, "total": len(results)}
 
 @mcp.tool(
     name="search_atlas_by_name",
-    description="Search ATLAS objects by name. Use object_type to filter: 'all', 'techniques', 'tactics', 'mitigations'.",
+    description="Search ATLAS objects by name. Use object_type to filter: 'all', 'techniques', 'tactics', 'mitigations'. Supports offset paging; total reflects all matches.",
     output_schema={"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object"}}, "total": {"type": "integer"}}},
     annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": False}
 )
-def search_atlas_by_name(query: str, object_type: str = "all", limit: int = 20):
+def search_atlas_by_name(query: str, object_type: str = "all", limit: int = 20, offset: int = 0):
     """MCP tool wrapper for searching ATLAS by name."""
-    return _search_atlas_by_name(query, object_type, limit)
+    return _search_atlas_by_name(query, object_type, limit, offset)
 
 def _get_atlas_techniques_by_tactic(tactic_id, limit=20, offset=0):
     """Get ATLAS techniques that belong to a specific tactic.

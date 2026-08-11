@@ -5,16 +5,26 @@ A Model Context Protocol (MCP) server for querying MITRE ATT&CK and MITRE ATLAS 
 ## GHCR image
 
 A public container image is published to the GitHub Container Registry. Pull the
-pinned version `0.1`:
+pinned version `0.2`:
 
 ```bash
-docker pull ghcr.io/sans-cloud-sec541/mcp-mitre:0.1
-docker run --rm -p 8099:8099 ghcr.io/sans-cloud-sec541/mcp-mitre:0.1
+docker pull ghcr.io/sans-cloud-sec541/mcp-mitre:0.2
+docker run --rm -p 8099:8099 ghcr.io/sans-cloud-sec541/mcp-mitre:0.2
 ```
 
 > This is an SEC541 org fork of [bradleyjlevine/mcp-mitre](https://github.com/bradleyjlevine/mcp-mitre),
 > distributed under the MIT License (see `LICENSE`). MITRE ATT&CK and MITRE ATLAS
 > are trademarks of The MITRE Corporation.
+
+## Data versions
+
+- MITRE ATT&CK Enterprise: **v19.2** (`enterprise-attack.json`)
+- MITRE ATLAS: **5.6.0** (`ATLAS.yaml`)
+
+By default, list and search functions return only active objects. Revoked and
+deprecated objects are excluded unless you pass `include_deprecated=True`.
+Detailed by-ID lookups (for example `get_technique_by_id`) still find revoked or
+deprecated objects by their explicit ID.
 
 ## Installation
 
@@ -70,11 +80,11 @@ python main.py --transport streamable-http --host 0.0.0.0 --port 9000
 ### ATT&CK Framework Tools
 
 #### Summary List Functions
-- `get_techniques(limit=20, offset=0)` - Get paginated list of ATT&CK techniques
-- `get_tactics(limit=20, offset=0)` - Get paginated list of ATT&CK tactics
-- `get_groups(limit=20, offset=0)` - Get paginated list of ATT&CK groups
-- `get_software(limit=20, offset=0)` - Get paginated list of ATT&CK software
-- `get_mitigations(limit=20, offset=0)` - Get paginated list of ATT&CK mitigations
+- `get_techniques(limit=20, offset=0, platform=None, include_deprecated=False)` - Get paginated list of ATT&CK techniques. Filter by `platform` (e.g., 'Windows', 'Linux', 'macOS', case-insensitive).
+- `get_tactics(limit=20, offset=0, include_deprecated=False)` - Get paginated list of ATT&CK tactics
+- `get_groups(limit=20, offset=0, include_deprecated=False)` - Get paginated list of ATT&CK groups
+- `get_software(limit=20, offset=0, include_deprecated=False)` - Get paginated list of ATT&CK software
+- `get_mitigations(limit=20, offset=0, include_deprecated=False)` - Get paginated list of ATT&CK mitigations
 
 #### Detailed Object Functions
 - `get_technique_by_id(technique_id)` - Get full ATT&CK technique details (e.g., 'T1055')
@@ -85,12 +95,13 @@ python main.py --transport streamable-http --host 0.0.0.0 --port 9000
 #### Relationship Functions
 - `get_software_used_by_group(group_alias, limit=20, offset=0)` - Get software used by a specific group
 - `get_techniques_used_by_group(group_alias, limit=20, offset=0)` - Get techniques used by a specific group
-- `get_techniques_by_tactic(tactic_id, limit=20, offset=0)` - Get techniques belonging to a specific tactic
+- `get_techniques_by_tactic(tactic_id, limit=20, offset=0, platform=None)` - Get techniques belonging to a specific tactic (optional `platform` filter)
 - `get_mitigations_for_technique(technique_id)` - Get mitigations that counter a specific technique
 
 #### Search Functions
-- `search_by_name(query, object_type="all", limit=20)` - Search ATT&CK objects by name
+- `search_by_name(query, object_type="all", limit=20, offset=0, include_deprecated=False)` - Search ATT&CK objects by name
   - `object_type` options: 'all', 'techniques', 'tactics', 'groups', 'software', 'mitigations'
+  - `total` reflects every match; use `offset` to page through results
 
 ### ATLAS Framework Tools
 
@@ -108,8 +119,9 @@ python main.py --transport streamable-http --host 0.0.0.0 --port 9000
 - `get_atlas_techniques_by_tactic(tactic_id, limit=20, offset=0)` - Get ATLAS techniques by tactic
 
 #### Search Functions
-- `search_atlas_by_name(query, object_type="all", limit=20)` - Search ATLAS objects by name
+- `search_atlas_by_name(query, object_type="all", limit=20, offset=0)` - Search ATLAS objects by name
   - `object_type` options: 'all', 'techniques', 'tactics', 'mitigations'
+  - `total` reflects every match; use `offset` to page through results
 
 #### Cross-Framework Mapping
 - `get_atlas_to_attack_mapping(atlas_id)` - Get corresponding ATT&CK mappings for ATLAS items
@@ -154,8 +166,32 @@ get_atlas_to_attack_mapping("AML.T0001")
 # Get techniques for a specific tactic
 get_techniques_by_tactic("TA0001")
 
+# Get only Windows techniques for the Execution tactic
+get_techniques_by_tactic("TA0002", platform="Windows")
+
 # Find mitigations for a technique
 get_mitigations_for_technique("T1055")
 ```
 
+### Platform and Deprecated Filtering
+```python
+# List only techniques that apply to Linux
+get_techniques(platform="Linux")
+
+# Include revoked and deprecated techniques in a list
+get_techniques(include_deprecated=True)
+```
+
 All functions return structured JSON data with consistent formatting for easy integration with MCP-compatible tools and applications.
+
+## Testing
+
+Tests use `pytest` (a dev dependency). Install the dev group and run the suite:
+
+```bash
+uv sync --group dev
+uv run pytest -q
+```
+
+Continuous integration runs the same tests on every push and pull request
+(see `.github/workflows/tests.yml`).

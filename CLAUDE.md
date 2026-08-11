@@ -38,8 +38,9 @@ python main.py
 # Run the server in HTTP mode
 python main.py --transport streamable-http --host 0.0.0.0 --port 8099
 
-# Run tests
-python test_mcp_tools.py
+# Run tests (pytest; install the dev group first)
+uv sync --group dev
+uv run pytest -q
 ```
 
 ## Architecture and Code Organization
@@ -84,8 +85,8 @@ The API is organized into several functional groups:
    - Update tests in `test_mcp_tools.py`
 
 2. **Testing Changes**:
-   - Update or add tests in `test_mcp_tools.py`
-   - Run tests with `python test_mcp_tools.py`
+   - Update or add assertion-based tests in `test_mcp_tools.py`
+   - Run tests with `uv run pytest -q`
    - Test with real data by running the server and making queries
 
 3. **Handling Data Source Updates**:
