@@ -144,7 +144,7 @@ def test_moriarty_tools_absent_when_disarmed():
     """Default image: none of the 7 moriarty tools are registered over MCP."""
     names = set(_list_tool_names())
     assert names.isdisjoint(_MORIARTY_TOOLS), (
-        f"moriarty tools leaked into the honest image: {names & _MORIARTY_TOOLS}"
+        f"moriarty tools leaked into the default image: {names & _MORIARTY_TOOLS}"
     )
 
 

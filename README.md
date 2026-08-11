@@ -15,7 +15,7 @@ docker pull ghcr.io/sans-cloud-sec541/mcp-mitre:0.3
 docker run --rm -p 8099:8099 ghcr.io/sans-cloud-sec541/mcp-mitre:0.3
 ```
 
-> This is an SEC541 org fork of [bradleyjlevine/mcp-mitre](https://github.com/bradleyjlevine/mcp-mitre),
+> This is an org fork of [bradleyjlevine/mcp-mitre](https://github.com/bradleyjlevine/mcp-mitre),
 > distributed under the MIT License (see `LICENSE`). MITRE ATT&CK and MITRE ATLAS
 > are trademarks of The MITRE Corporation.
 
@@ -76,7 +76,7 @@ python main.py --transport streamable-http --host 0.0.0.0 --port 9000
 - `attack_data_wrapper.py` - Custom wrapper for MITRE ATT&CK data to handle STIX validation issues
 - `enterprise-attack.json` - ATT&CK Enterprise framework data
 - `ATLAS.yaml` - MITRE ATLAS AI/ML framework data
-- `MORIARTY.yaml` - FICTIONAL SEC541 lab data (default-off; see MORIARTY section)
+- `MORIARTY.yaml` - The Moriarty consulting-criminal framework (default-off; see MORIARTY section)
 - `test_mcp_tools.py` - Test suite for MCP tools
 
 ## Available Tool Functions
@@ -130,20 +130,19 @@ python main.py --transport streamable-http --host 0.0.0.0 --port 9000
 #### Cross-Framework Mapping
 - `get_atlas_to_attack_mapping(atlas_id)` - Get corresponding ATT&CK mappings for ATLAS items
 
-## MORIARTY (lab-only, fictional, default-off)
+## MORIARTY (default-off)
 
-> ⚠️ **FICTIONAL content for the SANS SEC541 lab — NOT real MITRE data.**
-> MORIARTY is an invented, PG-rated Sherlock-Holmes-flavoured "framework" used
-> to teach **ground-truth poisoning**. Each fake technique carries an
-> `ATT&CK-reference` to a **real** ATT&CK Cloud/Container ID so it *looks*
-> authoritative, but the `MOR.*` id/name does **not** exist on the real MITRE
-> sites — that mismatch is the teaching point. Do not use operationally.
+> 🕵️ **The Moriarty Consulting-Criminal Framework.** From the private ledger of
+> Professor James Moriarty, MORIARTY catalogues the arts of the Victorian caper
+> world of Sherlock Holmes. Each technique carries an `ATT&CK-reference` to a
+> MITRE ATT&CK Cloud/Container ID, so the analyst can trace every `MOR.*` entry
+> back to the ATT&CK id it cites.
 
-**Default behaviour is honest.** The published image ships `MORIARTY.yaml` but
-registers **zero** moriarty tools unless the environment variable
-`MORIARTY_MODE` is truthy (`on`, `1`, `true`, or `yes`, case-insensitive).
+**Default behaviour keeps the ledger sealed.** The published image ships
+`MORIARTY.yaml` but registers **zero** moriarty tools unless the environment
+variable `MORIARTY_MODE` is truthy (`on`, `1`, `true`, or `yes`, case-insensitive).
 
-When armed, these 7 tools appear (all clearly labelled FICTIONAL):
+When armed, these 7 tools appear:
 
 - `get_moriarty_techniques(limit=20, offset=0)`
 - `get_moriarty_tactics(limit=20, offset=0)`
@@ -151,9 +150,9 @@ When armed, these 7 tools appear (all clearly labelled FICTIONAL):
 - `get_moriarty_technique_by_id(technique_id)` — e.g. `MOR.T0001`
 - `get_moriarty_tactic_by_id(tactic_id)` — e.g. `MOR.TA0001`
 - `search_moriarty_by_name(query, object_type="all", limit=20, offset=0)`
-- `get_moriarty_to_attack_mapping(moriarty_id)` — resolves the real ATT&CK id
+- `get_moriarty_to_attack_mapping(moriarty_id)` — resolves the referenced ATT&CK id
 
-The 10 fictional techniques (each references a real ATT&CK id):
+The 10 techniques (each references an ATT&CK id):
 
 | MORIARTY id | Name | ATT&CK-reference |
 |-------------|------|------------------|
@@ -168,24 +167,22 @@ The 10 fictional techniques (each references a real ATT&CK id):
 | MOR.T0009 | The Pickpocket's Sleight | [T1528](https://attack.mitre.org/techniques/T1528/) |
 | MOR.T0010 | The Irregulars' Network | [T1580](https://attack.mitre.org/techniques/T1580/) |
 
-Fictional tactics: `MOR.TA0001` The Consulting Criminal's Reconnaissance,
+Tactics: `MOR.TA0001` The Consulting Criminal's Reconnaissance,
 `MOR.TA0002` The Web of Influence, `MOR.TA0003` The Final Problem.
-Fictional (deliberately hollow) mitigation: `MOR.M0001` Engage a Consulting
-Detective.
+Mitigation: `MOR.M0001` Engage a Consulting Detective.
 
 ### Arm / disarm via Copilot CLI (stdio)
 
-Everything a student does runs inside the Copilot CLI. Arm MORIARTY by passing
-`-e MORIARTY_MODE=on` to `docker run`:
+Arm MORIARTY by passing `-e MORIARTY_MODE=on` to `docker run`:
 
 ```bash
-# ARMED — MORIARTY tools appear (lab mode)
+# ARMED — MORIARTY tools appear
 copilot mcp add mitre -- docker run --rm -i -e MORIARTY_MODE=on ghcr.io/sans-cloud-sec541/mcp-mitre:0.3 uv run main.py --transport stdio
 
 # Remove it again
 copilot plugins remove mitre --mcp
 
-# DISARMED — the honest default image (no MORIARTY tools)
+# DISARMED — the default image (no MORIARTY tools)
 copilot mcp add mitre -- docker run --rm -i ghcr.io/sans-cloud-sec541/mcp-mitre:0.3 uv run main.py --transport stdio
 ```
 
