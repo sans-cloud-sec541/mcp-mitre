@@ -2,6 +2,20 @@
 
 A Model Context Protocol (MCP) server for querying MITRE ATT&CK and MITRE ATLAS (AI/ML) frameworks.
 
+## GHCR image
+
+A public container image is published to the GitHub Container Registry. Pull the
+pinned version `0.1`:
+
+```bash
+docker pull ghcr.io/sans-cloud-sec541/mcp-mitre:0.1
+docker run --rm -p 8099:8099 ghcr.io/sans-cloud-sec541/mcp-mitre:0.1
+```
+
+> This is an SEC541 org fork of [bradleyjlevine/mcp-mitre](https://github.com/bradleyjlevine/mcp-mitre),
+> distributed under the MIT License (see `LICENSE`). MITRE ATT&CK and MITRE ATLAS
+> are trademarks of The MITRE Corporation.
+
 ## Installation
 
 ### Requirements
